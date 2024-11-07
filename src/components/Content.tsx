@@ -136,6 +136,7 @@ export function Content() {
               <Mail className="w-6 h-6" />
             </a>
           </div>
+          <div align=center><a href='https://www.counter12.com'><img src='https://www.counter12.com/img-8Z68ax448W76cBbb-6.gif' border='0' alt='counter'></a><script type='text/javascript' src='https://www.counter12.com/ad.js?id=8Z68ax448W76cBbb'></script><br><a href='https://meuip.page/qual-e-o-meu-ip/' target='_blank'><img src='https://img.meuip.page/selo-d3w3dCzW0Z782W1c.gif' alt='clique aqui' border='0'></a></div>
         </motion.div>
       </div>
     </div>
