@@ -1,11 +1,12 @@
 import { Canvas } from '@react-three/fiber';
 import { Scene } from './components/Scene';
 import { Content } from './components/Content';
+import { VisitorCounter } from './components/VisitorCounter';
 import { Suspense } from 'react';
 
 function App() {
   return (
-    <main className="relative w-full h-screen bg-gradient-to-b from-black to-blue-900">
+    <main className="relative w-full h-screen bg-gradient-to-b from-black to-purple-900">
       <Canvas
         className="absolute inset-0"
         dpr={[1, 2]}
@@ -16,6 +17,7 @@ function App() {
       </Canvas>
       <div className="absolute inset-0 bg-black/30 pointer-events-none" />
       <Content />
+      <VisitorCounter />
     </main>
   );
 }
