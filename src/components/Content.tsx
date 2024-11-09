@@ -70,7 +70,7 @@ export function Content() {
                 <div className="group">
                   <h4 className="text-lg font-medium mb-2 flex items-center gap-2">
                     <span>Tic Tac Toe</span>
-                    <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <ExternalLink href="https://github.com/priyanshu209006"  className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </h4>
                   <p className="text-gray-400 text-sm">
                     A Classic Game for Programming Practice using C.
