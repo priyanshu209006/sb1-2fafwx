@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 
 function App() {
   return (
-    <main className="relative w-full h-screen bg-gradient-to-b from-black to-purple-900">
+    <main className="relative w-full h-screen bg-gradient-to-b from-black to-blue-900">
       <Canvas
         className="absolute inset-0"
         dpr={[1, 2]}
