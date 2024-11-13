@@ -1,5 +1,7 @@
-import { env } from '../config/env';
-import { validateKey } from '../config/security';
+import { useState, useCallback } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.example.com';
+const API_KEY = import.meta.env.VITE_API_KEY || 'development_key';
 
 interface ApiOptions {
   endpoint: string;
@@ -7,20 +9,21 @@ interface ApiOptions {
   body?: unknown;
 }
 
-export function useApi() {
-  const fetchWithAuth = async <T>({ endpoint, method = 'GET', body }: ApiOptions): Promise<T> => {
-    try {
-      // Validate API key against public key before making request
-      const isValidKey = await validateKey(env.apiKey);
-      if (!isValidKey) {
-        throw new Error('Invalid API key');
-      }
+interface ApiError {
+  message: string;
+  status?: number;
+}
 
-      const response = await fetch(`${env.apiUrl}${endpoint}`, {
+export function useApi() {
+  const [error, setError] = useState<ApiError | null>(null);
+
+  const fetchWithAuth = useCallback(async <T>({ endpoint, method = 'GET', body }: ApiOptions): Promise<T> => {
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${env.apiKey}`,
+          'Authorization': `Bearer ${API_KEY}`,
         },
         body: body ? JSON.stringify(body) : undefined,
       });
@@ -31,10 +34,18 @@ export function useApi() {
 
       return response.json();
     } catch (error) {
-      console.error('API Request failed:', error);
-      throw error;
+      const apiError: ApiError = {
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        status: error instanceof Response ? error.status : undefined
+      };
+      setError(apiError);
+      throw apiError;
     }
-  };
+  }, []);
 
-  return { fetchWithAuth };
+  return {
+    fetchWithAuth,
+    error,
+    clearError: () => setError(null)
+  };
 }
