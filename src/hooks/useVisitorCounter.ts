@@ -8,15 +8,22 @@ interface VisitorState {
   lastUpdated: number;
 }
 
+const INITIAL_STATE: VisitorState = {
+  totalCount: 0,
+  uniqueVisitors: [],
+  lastUpdated: 0
+};
+
+const SYNC_INTERVAL = 30000; // 30 seconds
+
 export function useVisitorCounter() {
-  const [state, setState] = useState<VisitorState>({ totalCount: 0, uniqueVisitors: [], lastUpdated: 0 });
+  const [state, setState] = useState<VisitorState>(INITIAL_STATE);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewVisitor, setIsNewVisitor] = useState(false);
   const { fetchWithAuth } = useApi();
   const visitorId = useVisitorId();
 
   useEffect(() => {
-    const SYNC_INTERVAL = 30000; // 30 seconds
     let syncInterval: NodeJS.Timeout;
 
     const syncWithServer = async () => {
@@ -37,28 +44,30 @@ export function useVisitorCounter() {
         setIsNewVisitor(!response.uniqueVisitors.includes(visitorId));
       } catch (error) {
         console.error('Failed to sync with server:', error);
-        // Fallback to localStorage with timestamp-based conflict resolution
-        const storedData = localStorage.getItem('visitorState');
-        if (storedData) {
-          const localState: VisitorState = JSON.parse(storedData);
-          if (localState.lastUpdated > state.lastUpdated) {
-            setState(localState);
-          }
-        }
-
-        // Handle new visitor in offline mode
-        if (!state.uniqueVisitors.includes(visitorId)) {
-          const newState = {
-            totalCount: state.totalCount + 1,
-            uniqueVisitors: [...state.uniqueVisitors, visitorId],
-            lastUpdated: Date.now()
-          };
-          setState(newState);
-          localStorage.setItem('visitorState', JSON.stringify(newState));
-          setIsNewVisitor(true);
-        }
+        handleOfflineMode();
       } finally {
         setIsLoading(false);
+      }
+    };
+
+    const handleOfflineMode = () => {
+      const storedData = localStorage.getItem('visitorState');
+      if (storedData) {
+        const localState: VisitorState = JSON.parse(storedData);
+        if (localState.lastUpdated > state.lastUpdated) {
+          setState(localState);
+        }
+      }
+
+      if (!state.uniqueVisitors.includes(visitorId)) {
+        const newState = {
+          totalCount: state.totalCount + 1,
+          uniqueVisitors: [...state.uniqueVisitors, visitorId],
+          lastUpdated: Date.now()
+        };
+        setState(newState);
+        localStorage.setItem('visitorState', JSON.stringify(newState));
+        setIsNewVisitor(true);
       }
     };
 
