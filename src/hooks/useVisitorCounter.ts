@@ -6,18 +6,36 @@ interface VisitorState {
   totalCount: number;
   uniqueVisitors: string[];
   lastUpdated: number;
+  sessionId: string;
 }
 
-const INITIAL_STATE: VisitorState = {
-  totalCount: 0,
-  uniqueVisitors: [],
-  lastUpdated: 0
-};
-
+const SESSION_KEY = 'visitorSession';
+const STATE_KEY = 'visitorState';
 const SYNC_INTERVAL = 30000; // 30 seconds
 
+function getInitialState(): VisitorState {
+  const storedState = localStorage.getItem(STATE_KEY);
+  const sessionId = crypto.randomUUID();
+  
+  if (storedState) {
+    const parsed = JSON.parse(storedState);
+    return {
+      ...parsed,
+      sessionId,
+      lastUpdated: Date.now()
+    };
+  }
+
+  return {
+    totalCount: 0,
+    uniqueVisitors: [],
+    lastUpdated: Date.now(),
+    sessionId
+  };
+}
+
 export function useVisitorCounter() {
-  const [state, setState] = useState<VisitorState>(INITIAL_STATE);
+  const [state, setState] = useState<VisitorState>(getInitialState);
   const [isLoading, setIsLoading] = useState(true);
   const [isNewVisitor, setIsNewVisitor] = useState(false);
   const { fetchWithAuth } = useApi();
@@ -25,6 +43,7 @@ export function useVisitorCounter() {
 
   useEffect(() => {
     let syncInterval: NodeJS.Timeout;
+    const currentSession = sessionStorage.getItem(SESSION_KEY);
 
     const syncWithServer = async () => {
       if (!visitorId) return;
@@ -35,13 +54,29 @@ export function useVisitorCounter() {
           method: 'POST',
           body: {
             visitorId,
+            sessionId: state.sessionId,
             lastSync: state.lastUpdated,
             currentState: state
           }
         });
 
-        setState(response);
-        setIsNewVisitor(!response.uniqueVisitors.includes(visitorId));
+        // Merge local and server states
+        const mergedState = {
+          ...response,
+          totalCount: Math.max(response.totalCount, state.totalCount),
+          uniqueVisitors: [...new Set([...response.uniqueVisitors, ...state.uniqueVisitors])],
+          lastUpdated: Date.now()
+        };
+
+        setState(mergedState);
+        localStorage.setItem(STATE_KEY, JSON.stringify(mergedState));
+        
+        const isFirstVisit = !currentSession && !response.uniqueVisitors.includes(visitorId);
+        setIsNewVisitor(isFirstVisit);
+        
+        if (isFirstVisit) {
+          sessionStorage.setItem(SESSION_KEY, 'true');
+        }
       } catch (error) {
         console.error('Failed to sync with server:', error);
         handleOfflineMode();
@@ -51,22 +86,16 @@ export function useVisitorCounter() {
     };
 
     const handleOfflineMode = () => {
-      const storedData = localStorage.getItem('visitorState');
-      if (storedData) {
-        const localState: VisitorState = JSON.parse(storedData);
-        if (localState.lastUpdated > state.lastUpdated) {
-          setState(localState);
-        }
-      }
-
-      if (!state.uniqueVisitors.includes(visitorId)) {
+      if (!currentSession && !state.uniqueVisitors.includes(visitorId)) {
         const newState = {
+          ...state,
           totalCount: state.totalCount + 1,
           uniqueVisitors: [...state.uniqueVisitors, visitorId],
           lastUpdated: Date.now()
         };
         setState(newState);
-        localStorage.setItem('visitorState', JSON.stringify(newState));
+        localStorage.setItem(STATE_KEY, JSON.stringify(newState));
+        sessionStorage.setItem(SESSION_KEY, 'true');
         setIsNewVisitor(true);
       }
     };
@@ -74,12 +103,16 @@ export function useVisitorCounter() {
     syncWithServer();
     syncInterval = setInterval(syncWithServer, SYNC_INTERVAL);
 
-    return () => clearInterval(syncInterval);
-  }, [visitorId, fetchWithAuth, state.lastUpdated]);
+    return () => {
+      clearInterval(syncInterval);
+      localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    };
+  }, [visitorId, fetchWithAuth, state.sessionId]);
 
   return {
     count: state.totalCount,
     isNewVisitor,
-    isLoading
+    isLoading,
+    uniqueVisitors: state.uniqueVisitors.length
   };
 }
