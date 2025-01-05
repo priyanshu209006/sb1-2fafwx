@@ -1,7 +1,6 @@
 import { Canvas } from '@react-three/fiber';
 import { Scene } from './components/Scene';
 import { Content } from './components/Content';
-import { VisitorCounter } from './components/VisitorCounter';
 import { Suspense } from 'react';
 
 function App() {
@@ -17,7 +16,6 @@ function App() {
       </Canvas>
       <div className="absolute inset-0 bg-black/30 pointer-events-none" />
       <Content />
-      <VisitorCounter />
     </main>
   );
 }
